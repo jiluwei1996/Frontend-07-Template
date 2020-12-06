@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TicTacToe</title>
+</head>
+<body>
+    <div id="board"></div>
+</body>
+<style>
+    .cell{
+        width: 100px;
+        height: 100px;
+        background-color: greenyellow;
+        display: inline-block;
+
+        text-align: center;
+        line-height: 100px;
+        border: solid 1px white;
+        font-size: 50px;
+
+        vertical-align: middle;
+    }
+</style>
+<script>
+    let pattern = [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0]
+    ]
+    let color = 1;
+    let hasOver = false;
+    let initDirection = [{
+        step: [1, 0],
+        weight: 0
+    },{
+        step: [1, 1],
+        weight: 0
+    },{
+        step: [0, 1],
+        weight: 0
+    },{
+        step: [-1, 1],
+        weight: 0
+    },{
+        step: [1, -1],
+        weight: 0
+    },{
+        step: [0, -1],
+        weight: 0
+    },{
+        step: [-1, -1],
+        weight: 0
+    },{
+        step: [-1, 0],
+        weight: 0
+    }]
+    function show(){
+        let board = document.getElementById("board");
+        for(let i = 0; i < 3; i++){
+            for(let j = 0; j < 3; j++){
+                let cell = document.createElement("div");
+                cell.classList.add("cell");
+                cell.setAttribute("id", `cell${j}${i}`);
+                cell.innerText = this.drawCell(i, j)
+                cell.addEventListener("click",() => {this.userMove(i, j)});
+                board.appendChild(cell)
+            }
+            board.appendChild(document.createElement("br"))
+        }
+    }
+    function drawCell(x, y){
+        return pattern[y][x] === 2 ? "❌️" :
+            pattern[y][x] === 1 ? "⭕️" : "";
+    }
+    function userMove(x, y){
+        if(pattern[y][x] !== 0 || hasOver){
+            return
+        }
+        pattern[y][x] = 3 - color;
+        color = 3 - color;
+        this.update(x, y);
+        const flag = this.checkIsWin(x, y, pattern);
+        if(flag){
+            let winner = color === 1? "⭕️" : "❌";
+            hasOver = true;
+            setTimeout(() => {
+                alert(`${winner} is win`);
+            },100);
+        }else{
+            this.botMove();
+        }
+    }
+    async function botMove(){
+        let obj = this.bestChoice(pattern,3 - color);
+        console.log(obj);
+        if(!obj.point){
+            return;
+        }
+        let x = obj.point[0],
+            y = obj.point[1];
+        pattern[y][x] = 3 - color;
+        color = 3 - color;
+        this.update(x, y);
+        const flag = this.checkIsWin(x, y, pattern);
+        if(flag){
+            let winner = color === 1? "⭕️" : "❌";
+            hasOver = true;
+            setTimeout(() => {
+                alert(`${winner} is win`);
+            },100);
+        }
+    }
+    //更新棋块(局部)
+    function update(x, y){
+        let cellItem = document.getElementById(`cell${y}${x}`);
+        cellItem.innerText = this.drawCell(x, y);
+    }
+    //判断是否胜利,这个方法适用于五子棋
+    function checkIsWin(x, y, board){
+        let direction = this.cloneObject(initDirection);
+        let originColor = board[y][x];
+        direction.forEach((v, i) => {
+            let arrowX = x, arrowY = y;
+            let weight = 0;
+            for(let i = 0; i < 3; i++){
+                arrowX += v.step[0];
+                arrowY += v.step[1];
+                if(arrowX >= 0 && arrowX < 3 && arrowY >= 0 && arrowY < 3){
+                    if(board[arrowY][arrowX] === originColor){
+                        weight++;
+                    }else{
+                        break;
+                    }
+                }
+            }
+            v.weight = weight;
+        })
+        return direction.some((v, i) => {
+            if (direction[i].weight + direction[7 - i].weight + 1 > 2) { //斜对角的权重加上自身的1
+                return true;
+            }
+        });
+    }
+    function cloneObject(init) {
+        return JSON.parse(JSON.stringify(init));
+    }
+    function willWin(board, color){
+        let cloneBoard = this.cloneObject(board);
+        for(let i = 0; i < 3; i++){
+            for(let j = 0; j < 3; j++){
+                if(cloneBoard[j][i] === 0){
+                    cloneBoard[j][i] = color;
+                    const flag = this.checkIsWin(i, j, cloneBoard);
+                    if(flag){
+                        let winner = cloneBoard[j][i] === 1? "⭕️" : "❌";
+                        // console.log(`${winner} will win`);
+                        return [i, j];
+                    }
+                    cloneBoard = this.cloneObject(board);
+                }
+            }
+        }
+        return null;
+    }
+    function bestChoice(pattern, color){
+        let p = this.willWin(pattern, color);
+        if(p) {
+            return {
+                point: p,
+                result: 1
+            };
+        }
+        let result = -2;
+        let point = null;
+        for(let i = 0; i < 3; i++){
+            for(let j = 0; j < 3; j++){
+                if(pattern[j][i])
+                    continue;
+                let tmp = this.cloneObject(pattern);
+                tmp[j][i] = color;
+                let r = this.bestChoice(tmp, 3 - color).result;
+                if(-r > result) {
+                    result = -r;
+                    point = [i, j];
+                }
+            }
+        }
+        return {
+            point: point,
+            result: point? result : 0
+        };
+    }
+    show(pattern);
+</script>
+</html>
